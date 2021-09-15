@@ -1,44 +1,35 @@
 const fp = require("fastify-plugin");
+const Inertia = require('./src/inertia')
 
 const defaultOptions = {
   resolveAssetVersion: (request) => {
     return "1";
   },
-  share()
+  share() {
+    return {
+      //
+    }
+  },
+  renderRootView(context) {
+    throw new Error('Inertia Error: You must implement a root view handler')
+  }
 };
 
-class Inertia {
-    sharedProps = {}
-    pageProps = {}
-
-    share(key, value) {
-        this.sharedProps[key] = value
-        return this
-    }
-
-    render(component, props = {}) {
-        
-    }
-    
-    redirect() {
-        
-    }
-}
 
 function plugin(fastify, options, next) {
   options = { ...defaultOptions, ...options };
 
-  fastify.addHook('onRequest', async function (request) {
-    request.inertia = new Inertia(options)
+  fastify.addHook('onRequest', async function (request, reply) {
+    const inertia = new Inertia({request, reply, options})
+    
+    request.inertia = inertia
+    reply.inertia = inertia
   });
 
-  fastify.decorateReply("inertia", async function (component, props) {
-    const page = {
-      version: await options.resolveAssetVersion(this.request),
-    };  
-
-    return { page };
-  });
+  // fastify.decorateReply("inertia", function () {
+  //   console.log(this.request)
+  //   return this.request.inertia
+  // });
 
   next();
 }
