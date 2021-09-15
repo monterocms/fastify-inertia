@@ -1,0 +1,12 @@
+{
+  "name": "fastify-inertia",
+  "version": "1.0.0",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "author": "Sam Thompson <sam.thompson.189@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "fastify": "^3.21.1",
+    "fastify-plugin": "^3.0.0"
+  }
+}
