@@ -1,7 +1,10 @@
 import React from 'react'
 
 export default ({ msg }) => (
-    <h1>Home:{msg}</h1>
+    <React.Fragment>
+        <h1>Home</h1>
+        <p>{msg}</p>
+    </React.Fragment>
 )
 
-const foo = 2
+// const foo = 2

@@ -8,8 +8,5 @@
   "devDependencies": {
     "fastify": "^3.21.1",
     "fastify-plugin": "^3.0.0"
-  },
-  "dependencies": {
-    "fastify-static": "^4.2.3"
   }
 }

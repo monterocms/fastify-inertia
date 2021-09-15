@@ -2,7 +2,6 @@ import React from 'react'
 import { render } from 'react-dom'
 import { createInertiaApp, Link } from '@inertiajs/inertia-react'
 
-
 function Wrapper({ children }) {
     return (
         <div>
@@ -17,15 +16,10 @@ function Wrapper({ children }) {
 }
 
 createInertiaApp({
-    resolve: name => {
-        console.log({ name })
-        return require(`./pages/${name}.jsx`).default
-    },
+    resolve: name => require(`./pages/${name}.jsx`).default,
     setup({ el, App, props }) {
-        render(
-            <Wrapper>
-                <App {...props} />
-            </Wrapper>
-            , el)
+        render(<Wrapper>
+            <App {...props} />
+        </Wrapper>, el)
     },
 })

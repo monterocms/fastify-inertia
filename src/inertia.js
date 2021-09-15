@@ -1,142 +1,120 @@
-
-const kLazy = Symbol('InertiaLazy')
-const globallyShared = {}
+const kLazy = Symbol("InertiaLazy");
+const globallyShared = {};
 
 class Inertia {
-    static lazy(value) {
-        return {
-            [kLazy]: true,
-            value
-        }
+  static lazy(value) {
+    return {
+      [kLazy]: true,
+      value,
+    };
+  }
+
+  static share(key, value) {
+    globallyShared[key] = value;
+  }
+
+  constructor({ request, reply, options, version }) {
+    this.request = request;
+    this.reply = reply;
+    this.options = options;
+    this.version = version;
+    this.sharedProps = {};
+    this.viewProps = {};
+  }
+
+  share(key, value) {
+    this.sharedProps[key] = value;
+  }
+
+  flushShared() {
+    this.sharedProps = {};
+  }
+
+  async render(component, data = {}) {
+    this._applyHeaders();
+
+    const props = await this._resolveProps(data);
+    const page = {
+      component,
+      props,
+      url: this.request.url,
+      version: this.version,
+    };
+
+    if (this.request.headers["X-Inertia"]) {
+      return this.reply
+        .headers({ "X-Inertia-Version": this.version })
+        .send(page);
     }
 
-    static share(key, value) {
-        globallyShared[key] = value
+    const result = await this.options.renderRootView({
+      ...this.viewProps,
+      page: JSON.stringify(page)
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;"),
+    });
+
+    if (typeof result === "string") {
+      this.reply.type("text/html");
     }
 
-    constructor({request, reply, options}) {
-        this.request = request
-        this.reply = reply
-        this.options = options
-        this.sharedProps = {}
-        this.viewProps = {}
-        this.cache = {}
-    }
+    return this.reply
+      .headers({ "X-Inertia-Version": this.version })
+      .send(result);
+  }
 
-    share(key, value) {
-        this.sharedProps[key] = value
-    }
+  location(url) {
+    return this.reply
+      .status(409)
+      .headers({
+        "X-Inertia-Location": url ?? this.request.url,
+      })
+      .send("");
+  }
 
-    flushShared() {
-        this.sharedProps = {}
-    }
+  redirect(url) {
+    this._applyHeaders();
 
-    async render(component, data = {}) {
-        this._applyHeaders()
+    return this.reply.redirect(url ?? this.request.headers.url);
+  }
 
-        const currentAssetVersion = await this._version()
-        const requestAssetVersion = this.request.headers['x-inertia-version'] ?? "1"
+  _applyHeaders() {
+    this.reply.headers({
+      Vary: "Accept",
+      "X-Inertia": true,
+    });
+  }
 
-        const props = await this._resolveProps(data)
-        const url = this.request.url
-        const pageData = {
-            component,
-            props,
-            url,
-            version: currentAssetVersion
-        }
+  async _resolveProps(renderProps) {
+    const resolvedProps = {};
+    const allProps = {
+      ...globallyShared,
+      ...this.options.share(),
+      ...this.sharedProps,
+      ...renderProps,
+    };
 
-        if (this.request.headers['x-inertia']) {
-            if (currentAssetVersion === requestAssetVersion) {
-                return this.reply
-                    .headers({
-                        'Vary': "Accept",
-                        'X-Inertia-Version': currentAssetVersion
-                    })
-                    .send(pageData)
-            } else {
-                console.log('new asset version')
-                return this.reply.status(409).headers({
-                    'X-Inertia-Location': url
-                }).send(pageData)
-                // return this.location(`http://localhost:3000${this.request.url}`, pageData)
-            }
-        }
+    const propKeys = this.request.headers["x-inertia-partial-data"]
+      ? this.request.headers["x-inertia-partial-data"].split(",")
+      : Object.keys(allProps);
 
-        const result = await this.options.renderRootView({
-            ...this.viewProps,
-            page: JSON.stringify(pageData)
-        })
+    // @TODO: walk down nested objects and arrays to omit lazy keys
+    propKeys.forEach(async (propKey) => {
+      // Check if the prop needs to be resolved (partial reloads)
+      if (typeof allProps[propKey] === "function") {
+        resolvedProps[propKey] = await allProps[propKey]();
+      }
 
+      // Check if the prop is lazy (partial reloads)
+      if (allProps[propKey] && allProps[propKey][kLazy]) {
+        resolvedProps[propKey] = allProps[propKey].value;
+      }
 
-        if (typeof result == 'string') {
-            this.reply.type('text/html')
-        }
+      resolvedProps[propKey] = allProps[propKey];
+    });
 
-        return this.reply 
-            .headers({
-                'Vary': "Accept",
-                'X-Inertia-Version': currentAssetVersion
-            })
-            .send(result)
-    }
-
-    location(url, data) {
-        return this.reply.status(409).headers({
-            'X-Inertia-Location': url
-        }).send(data)
-    }
-    
-    redirect(url) {
-        this._applyHeaders()
-
-        return this.reply.redirect(
-            url ?? this.request.headers.url
-        )
-    }
-
-    _applyHeaders() {
-        this.reply.headers({
-            'X-Inertia': true
-        })
-    }
-
-    async _version() {
-        if (!this.cache.version) {
-            this.cache.version = await this.options.resolveAssetVersion(this.request)
-        }
-        return this.cache.version
-    }
-
-    async _resolveProps(renderProps) {
-        const resolvedProps = {}  
-        const allProps = {
-            ...globallyShared,
-            ...this.options.share(),
-            ...this.sharedProps,
-            ...renderProps
-        }
-        
-        const propKeys = this.request.headers['x-inertia-partial-data']
-            ? this.request.headers['x-inertia-partial-data'].split(',')
-            : Object.keys(allProps)
-
-        propKeys.forEach(async propKey => {
-            // Check if the prop needs to be resovled (partial reloads)
-            if (typeof allProps[propKey] === 'function') {
-                resolvedProps[propKey] = await allProps[propKey]()
-            }
-
-            // Check if the prop is lazy (partial reloads)
-            if (allProps[propKey] && allProps[propKey][kLazy]) {
-                resolvedProps[propKey] = allProps[propKey].value
-            }
-
-            resolvedProps[propKey] = allProps[propKey]
-        })
-
-        return resolvedProps
-    }
+    return resolvedProps;
+  }
 }
 
-module.exports = Inertia
+module.exports = Inertia;

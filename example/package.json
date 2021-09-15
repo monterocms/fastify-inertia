@@ -3,16 +3,16 @@
   "version": "0.0.0",
   "scripts": {},
   "dependencies": {
-    "@inertiajs/inertia": "^0.10.1",
-    "@inertiajs/inertia-react": "^0.7.1",
     "fastify": "^3.21.1",
-    "laravel-mix": "^6.0.31",
-    "md5": "^2.3.0",
-    "object-hash": "^2.2.0",
-    "react": "^17.0.0",
-    "react-dom": "^17.0.0"
+    "fastify-static": "^4.2.3",
+    "md5": "^2.3.0"
   },
   "devDependencies": {
-    "@babel/preset-react": "^7.14.5"
+    "@babel/preset-react": "^7.14.5",
+    "@inertiajs/inertia": "^0.10.1",
+    "@inertiajs/inertia-react": "^0.7.1",
+    "laravel-mix": "^6.0.31",
+    "react": "^17.0.0",
+    "react-dom": "^17.0.0"
   }
 }
