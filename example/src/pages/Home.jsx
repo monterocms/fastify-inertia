@@ -6,5 +6,3 @@ export default ({ msg }) => (
         <p>{msg}</p>
     </React.Fragment>
 )
-
-// const foo = 2
