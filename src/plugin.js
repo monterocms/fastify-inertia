@@ -10,14 +10,23 @@ function plugin(fastify, options, next) {
 
     if (
       request.method === "GET" &&
-      request.headers["X-Inertia"] &&
-      request.headers["X-Inertia-Version"] !== version
+      request.headers["x-inertia"] &&
+      request.headers["x-inertia-version"] !== version
     ) {
       return inertia.location(request.url);
     }
 
     request.inertia = inertia;
     reply.inertia = inertia;
+  });
+
+  fastify.addHook("onSend", async (request, reply) => {
+    if (
+      request.headers["x-inertia"] &&
+      ["PUT", "PATCH", "DELETE"].includes(request.method)
+    ) {
+      reply.code(303);
+    }
   });
 
   next();

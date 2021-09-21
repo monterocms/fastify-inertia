@@ -31,8 +31,6 @@ class Inertia {
   }
 
   async render(component, data = {}) {
-    this._applyHeaders();
-
     const props = await this._resolveProps(data);
     const page = {
       component,
@@ -41,25 +39,34 @@ class Inertia {
       version: this.version,
     };
 
-    if (this.request.headers["X-Inertia"]) {
+    if (this.request.headers["x-inertia"]) {
       return this.reply
-        .headers({ "X-Inertia-Version": this.version })
+        .headers({
+          "x-inertia": true,
+          "x-inertia-version": this.version,
+        })
         .send(page);
     }
 
-    const result = await this.options.renderRootView({
-      ...this.viewProps,
-      page: JSON.stringify(page)
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;"),
-    });
+    const result = await this.options.renderRootView(
+      {
+        ...this.viewProps,
+        page: JSON.stringify(page)
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;"),
+      },
+      this.request
+    );
 
     if (typeof result === "string") {
       this.reply.type("text/html");
     }
 
     return this.reply
-      .headers({ "X-Inertia-Version": this.version })
+      .headers({
+        "x-inertia": true,
+        "x-inertia-version": this.version,
+      })
       .send(result);
   }
 
@@ -67,22 +74,14 @@ class Inertia {
     return this.reply
       .status(409)
       .headers({
-        "X-Inertia-Location": url ?? this.request.url,
+        "x-inertia": true,
+        "x-inertia-location": url ?? this.request.url,
       })
       .send("");
   }
 
   redirect(url) {
-    this._applyHeaders();
-
     return this.reply.redirect(url ?? this.request.headers.url);
-  }
-
-  _applyHeaders() {
-    this.reply.headers({
-      Vary: "Accept",
-      "X-Inertia": true,
-    });
   }
 
   async _resolveProps(renderProps) {

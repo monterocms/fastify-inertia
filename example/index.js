@@ -45,5 +45,16 @@ app.get("/about", function (request, reply) {
   return reply.inertia.render("About", { msg: "This is the about page" });
 });
 
+app.get("/contact", function (request, reply) {
+  return reply.inertia.redirect("/about");
+});
+
+app.patch("/users", function (request, reply) {
+  if (!request.body.first_name) {
+    return reply.redirect("/about");
+  }
+  return reply.redirect("/");
+});
+
 console.log("Server running at http://localhost:3000");
 app.listen(3000);
